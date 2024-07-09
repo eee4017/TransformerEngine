@@ -303,7 +303,9 @@ def _linear_bwd_fp8(
         if parallel_mode == "column" and sequence_parallel:
             if handle is not None:
                 handle.wait()
-            dgrad, handle = reduce_scatter(dgrad, tp_group, sync_op=False)
+            dgrad, handle = reduce_scatter(
+                dgrad, tp_group, sync_op=get_global_fp8_state().is_cudagraph_enabled()
+            )
         elif parallel_mode == "column" and tensor_parallel:
             dgrad, handle = allreduce(dgrad, tp_group, sync_op=False)
 
@@ -348,7 +350,7 @@ def _linear_bwd_fp8(
 
     if parallel_mode == "column" and tensor_parallel and handle is not None:
         handle.wait()
-    if parallel_mode == "column" and sequence_parallel:
+    if parallel_mode == "column" and sequence_parallel and handle is not None:
         handle.wait()
 
     return dgrad, wgrad
